@@ -3,7 +3,8 @@ pipeline {
 
     environment {
         AWS_REGION = 'ap-southeast-2'
-        ECR_REPO = '950846564115.dkr.ecr.ap-southeast-2.amazonaws.com/devops_ecr'
+        ECR_URI = '950846564115.dkr.ecr.ap-southeast-2.amazonaws.com'
+        REPOSITORY = 'devops_ecr'
         IMAGE_TAG = 'latest'
     }
 
@@ -22,7 +23,8 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $ECR_REPO:$IMAGE_TAG .'
+                sh 'docker build -t ${REPOSITORY}:latest .'
+                sh 'docker tag ${REPOSITORY}:latest ${ECR_URI}/${REPOSITORY}:${IMAGE_TAG}'
             }
         }
 
