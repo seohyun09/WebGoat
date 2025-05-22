@@ -23,8 +23,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t ${REPOSITORY}:latest .'
-                sh 'docker tag ${REPOSITORY}:latest ${ECR_URI}/${REPOSITORY}:${IMAGE_TAG}'
+                sh 'docker build -t ${ECR_URI}/${REPOSITORY}:${IMAGE_TAG} .'
             }
         }
 
@@ -34,18 +33,17 @@ pipeline {
                     sh '''
                         export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
                         export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-                        export AWS_DEFAULT_REGION=$AWS_REGION
-        
-                        aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin 950846564115.dkr.ecr.ap-southeast-2.amazonaws.com
+                        export AWS_REGION=$AWS_REGION
+
+                        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URI
                     '''
                 }
             }
         }
 
-
         stage('Push to ECR') {
             steps {
-                sh 'docker push $ECR_REPO:$IMAGE_TAG'
+                sh 'docker push ${ECR_URI}/${REPOSITORY}:${IMAGE_TAG}'
             }
         }
     }
