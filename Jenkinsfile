@@ -95,7 +95,7 @@ pipeline {
                         returnStdout: true
                     ).trim()
 
-                    def appspec = """version: 1
+                    def appspec = """version: 0.0
 Resources:
   - TargetService:
       Type: AWS::ECS::Service
