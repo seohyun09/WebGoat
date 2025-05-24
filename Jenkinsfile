@@ -8,7 +8,7 @@ pipeline {
         TASK_FAMILY = 'ecs_task_definition'
         SERVICE_NAME = 'ecs_task_definition-service-6lc21cqh'
         CLUSTER_NAME = 'ecs_cluster'
-        S3_BUCKET = 'soniaa-09'
+        S3_BUCKET = 'soniaa-s3'
         DEPLOY_APP = 'devops_codedeploy'
         DEPLOY_GROUP = 'devops'
         BUNDLE = 'deploy-bundle.zip'
