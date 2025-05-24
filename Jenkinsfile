@@ -12,7 +12,7 @@ pipeline {
         DEPLOY_APP = 'devops_codedeploy'
         DEPLOY_GROUP = 'devops'
         BUNDLE = 'deploy-bundle.zip'
-        CONTAINER_PORT = '8080' // 실제 앱 포트에 맞게 수정
+        CONTAINER_PORT = '9090' // 실제 앱 포트에 맞게 수정
         EXECUTION_ROLE_ARN = 'arn:aws:iam::950846564115:role/iam_codedeploy'
     }
 
