@@ -56,70 +56,70 @@ pipeline {
             }
         }
 
-        stage('Generate taskdef.json') {
-            steps {
-                script {
-                    def taskdef = """{
-  "family": "${TASK_FAMILY}",
-  "networkMode": "awsvpc",
-  "containerDefinitions": [
-    {
-      "name": "devops-container",
-      "image": "${ECR_REPO}:${IMAGE_TAG}",
-      "memory": 512,
-      "cpu": 256,
-      "essential": true,
-      "portMappings": [
-        {
-          "containerPort": ${CONTAINER_PORT},
-          "protocol": "tcp"
-        }
-      ]
-    }
-  ],
-  "requiresCompatibilities": ["FARGATE"],
-  "cpu": "256",
-  "memory": "512",
-  "executionRoleArn": "${EXECUTION_ROLE_ARN}"
-}"""
-                    writeFile file: 'taskdef.json', text: taskdef
-                }
-            }
-        }
+//         stage('Generate taskdef.json') {
+//             steps {
+//                 script {
+//                     def taskdef = """{
+//   "family": "${TASK_FAMILY}",
+//   "networkMode": "awsvpc",
+//   "containerDefinitions": [
+//     {
+//       "name": "devops-container",
+//       "image": "${ECR_REPO}:${IMAGE_TAG}",
+//       "memory": 512,
+//       "cpu": 256,
+//       "essential": true,
+//       "portMappings": [
+//         {
+//           "containerPort": ${CONTAINER_PORT},
+//           "protocol": "tcp"
+//         }
+//       ]
+//     }
+//   ],
+//   "requiresCompatibilities": ["FARGATE"],
+//   "cpu": "256",
+//   "memory": "512",
+//   "executionRoleArn": "${EXECUTION_ROLE_ARN}"
+// }"""
+//                     writeFile file: 'taskdef.json', text: taskdef
+//                 }
+//             }
+//         }
 
-        stage('Generate appspec.yaml') {
-            steps {
-                script {
-                    def taskDefArn = sh(
-                        script: "aws ecs register-task-definition --cli-input-json file://taskdef.json --query 'taskDefinition.taskDefinitionArn' --output text --region $AWS_DEFAULT_REGION",
-                        returnStdout: true
-                    ).trim()
+//         stage('Generate appspec.yaml') {
+//             steps {
+//                 script {
+//                     def taskDefArn = sh(
+//                         script: "aws ecs register-task-definition --cli-input-json file://taskdef.json --query 'taskDefinition.taskDefinitionArn' --output text --region $AWS_DEFAULT_REGION",
+//                         returnStdout: true
+//                     ).trim()
 
-                    def appspec = """version: 0.0
-Resources:
-  - TargetService:
-      Type: AWS::ECS::Service
-      Properties:
-        TaskDefinition: "${taskDefArn}"
-        LoadBalancerInfo:
-          ContainerName: "devops-container"
-          ContainerPort: ${CONTAINER_PORT}
-"""
-                    writeFile file: 'appspec.yaml', text: appspec
-                }
-            }
-        }
+//                     def appspec = """version: 0.0
+// Resources:
+//   - TargetService:
+//       Type: AWS::ECS::Service
+//       Properties:
+//         TaskDefinition: "${taskDefArn}"
+//         LoadBalancerInfo:
+//           ContainerName: "devops-container"
+//           ContainerPort: ${CONTAINER_PORT}
+// """
+//                     writeFile file: 'appspec.yaml', text: appspec
+//                 }
+//             }
+//         }
 
-        stage('Bundle for CodeDeploy') {
-            steps {
-                sh 'zip -r $BUNDLE appspec.yaml taskdef.json'
-            }
-        }
+//         stage('Bundle for CodeDeploy') {
+//             steps {
+//                 sh 'zip -r $BUNDLE appspec.yaml taskdef.json'
+//             }
+//         }
 
         stage('Deploy via CodeDeploy') {
             steps {
                 sh '''
-                    aws s3 cp $BUNDLE s3://$S3_BUCKET/$BUNDLE --region $AWS_DEFAULT_REGION
+                    // aws s3 cp $BUNDLE s3://$S3_BUCKET/$BUNDLE --region $AWS_DEFAULT_REGION
 
                     aws deploy create-deployment \
                         --application-name $DEPLOY_APP \
