@@ -119,7 +119,6 @@ pipeline {
         stage('Deploy via CodeDeploy') {
             steps {
                 sh '''
-                    // aws s3 cp $BUNDLE s3://$S3_BUCKET/$BUNDLE --region $AWS_DEFAULT_REGION
 
                     aws deploy create-deployment \
                         --application-name $DEPLOY_APP \
