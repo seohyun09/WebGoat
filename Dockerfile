@@ -9,7 +9,6 @@ USER webgoat
 COPY --chown=webgoat target/webgoat-*.jar /home/webgoat/webgoat.jar
 
 EXPOSE 8080
-EXPOSE 9090
 
 WORKDIR /home/webgoat
 ENTRYPOINT [ "java", \
