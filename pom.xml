@@ -416,6 +416,31 @@
 
   <build>
     <plugins>
+        <plugin>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-maven-plugin</artifactId>
+            <version>4.8.3.0</version> <dependencies>
+                <dependency>
+                    <groupId>com.h3xstream.findsecbugs</groupId>
+                    <artifactId>findsecbugs-plugin</artifactId>
+                    <version>1.12.0</version> </dependency>
+            </dependencies>
+            <configuration>
+                <effort>Max</effort>          <threshold>Low</threshold>     <failOnError>false</failOnError> <xmlOutput>true</xmlOutput>    <xmlOutputFilename>spotbugsXml.xml</xmlOutputFilename> <outputDirectory>${project.build.directory}</outputDirectory> <plugins>
+                    <plugin>
+                        <groupId>com.h3xstream.findsecbugs</groupId>
+                        <artifactId>findsecbugs-plugin</artifactId>
+                    </plugin>
+                </plugins>
+            </configuration>
+            <executions>
+                <execution>
+                    <id>analyze-with-spotbugs</id>
+                    <phase>verify</phase> <goals>
+                        <goal>check</goal> </goals>
+                </execution>
+            </executions>
+        </plugin>
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
