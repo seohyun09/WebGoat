@@ -565,7 +565,7 @@
               <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
               <sortProperties>true</sortProperties>
               <sortModules>true</sortModules>
-              <sortExecutions>true</sortExecions>
+              <sortExecutions>true</sortExecutions>
             </sortPom>
           </pom>
         </configuration>
