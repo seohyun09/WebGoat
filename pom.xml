@@ -424,7 +424,8 @@
           <dependency>
             <groupId>com.h3xstream.findsecbugs</groupId>
             <artifactId>findsecbugs-plugin</artifactId>
-            <version>1.12.0</version> </dependency>
+            <version>1.12.0</version>
+          </dependency>
         </dependencies>
       </plugin>
       <plugin>
