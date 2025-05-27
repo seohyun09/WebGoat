@@ -109,11 +109,9 @@
 
   <properties>
 
-    <!-- Shared properties with plugins and version numbers across submodules-->
     <asciidoctorj.version>2.5.3</asciidoctorj.version>
     <bootstrap.version>3.3.7</bootstrap.version>
     <cglib.version>2.2</cglib.version>
-    <!-- do not update necessary for lesson -->
     <checkstyle.version>3.1.2</checkstyle.version>
     <commons-collections.version>3.2.1</commons-collections.version>
     <commons-io.version>2.6</commons-io.version>
@@ -134,7 +132,6 @@
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
     <pmd.version>3.15.0</pmd.version>
-    <!-- Use UTF-8 Encoding -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <thymeleaf.version>3.0.15.RELEASE</thymeleaf.version>
@@ -144,7 +141,6 @@
     <wiremock.version>2.27.2</wiremock.version>
     <xml-resolver.version>1.2</xml-resolver.version>
     <xstream.version>1.4.5</xstream.version>
-    <!-- do not update necessary for lesson -->
     <zxcvbn.version>1.5.2</zxcvbn.version>
   </properties>
 
@@ -168,7 +164,6 @@
         <version>${asciidoctorj.version}</version>
       </dependency>
       <dependency>
-        <!-- jsoup HTML parser library @ https://jsoup.org/ -->
         <groupId>org.jsoup</groupId>
         <artifactId>jsoup</artifactId>
         <version>${jsoup.version}</version>
@@ -416,22 +411,22 @@
 
   <build>
     <plugins>
-        <build>
-    <plugins>
-        <plugin>
-            <groupId>com.github.spotbugs</groupId>
-            <artifactId>spotbugs-maven-plugin</artifactId>
-            <version>4.8.3.0</version> <configuration>
-                <failOnError>true</failOnError> <includeFilterFile>spotbugs-security-include.xml</includeFilterFile> <excludeFilterFile>spotbugs-security-exclude.xml</excludeFilterFile> </configuration>
-            <dependencies>
-                <dependency>
-                    <groupId>com.h3xstream.findsecbugs</groupId>
-                    <artifactId>findsecbugs-plugin</artifactId>
-                    <version>1.12.0</version> </dependency>
-            </dependencies>
-        </plugin>
-    </plugins>
-</build>
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>4.8.3.0</version>
+        <configuration>
+          <failOnError>true</failOnError>
+          <includeFilterFile>spotbugs-security-include.xml</includeFilterFile>
+          <excludeFilterFile>spotbugs-security-exclude.xml</excludeFilterFile>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>com.h3xstream.findsecbugs</groupId>
+            <artifactId>findsecbugs-plugin</artifactId>
+            <version>1.12.0</version> </dependency>
+        </dependencies>
+      </plugin>
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
@@ -439,7 +434,6 @@
           <excludeDevtools>true</excludeDevtools>
           <executable>true</executable>
           <mainClass>org.owasp.webgoat.server.StartWebGoat</mainClass>
-          <!-- See http://docs.spring.io/spring-boot/docs/current/reference/html/howto-build.html#howto-extract-specific-libraries-when-an-executable-jar-runs -->
           <requiresUnpack>
             <dependency>
               <groupId>org.asciidoctor</groupId>
@@ -571,7 +565,7 @@
               <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
               <sortProperties>true</sortProperties>
               <sortModules>true</sortModules>
-              <sortExecutions>true</sortExecutions>
+              <sortExecutions>true</sortExecions>
             </sortPom>
           </pom>
         </configuration>
@@ -722,7 +716,6 @@
               <skipProvidedScope>false</skipProvidedScope>
               <skipRuntimeScope>false</skipRuntimeScope>
               <suppressionFiles>
-                <!--suppress UnresolvedMavenProperty -->
                 <suppressionFile>${maven.multiModuleProjectDirectory}/config/dependency-check/project-suppression.xml</suppressionFile>
               </suppressionFiles>
             </configuration>
