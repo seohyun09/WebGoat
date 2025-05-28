@@ -1,29 +1,22 @@
 pipeline {
-    agent { label 'sast-infer-agent' }
+    agent { label 'sast-infer-agent' } // 이 agent가 Maven, JDK, Git, Docker를 모두 가지고 있어야 합니다.
 
     tools {
-        jdk 'JDK_17'
+        jdk 'JDK_17' // Jenkins Global Tool Configuration에 'JDK_17'로 JDK 17이 설정되어 있어야 합니다.
+        maven 'M3'   // Jenkins Global Tool Configuration에 'M3'와 같은 이름으로 Maven이 설정되어 있어야 합니다.
+                     // (혹은 pipeline 내에서 sh 'mvn ...' 명령 시 PATH에 Maven이 잡혀있어야 합니다.)
     }
 
     environment {
-        // AWS_DEFAULT_REGION = 'ap-southeast-2' // 이제 필요 없으므로 주석 처리 또는 제거
-        // ECR_REPO = '950846564115.dkr.ecr.ap-southeast-2.amazonaws.com/devops_ecr' // 제거
-        // IMAGE_TAG = 'latest' // 제거
-        // TASK_FAMILY = 'ecs_task_definition' // 제거
-        // SERVICE_NAME = 'ecs_task_definition-service-6lc21cqh' // 제거
-        // CLUSTER_NAME = 'ecs_cluster' // 제거
-        // S3_BUCKET = 'soniaa-s3' // 제거
-        // DEPLOY_APP = 'devops_codedeploy' // 제거
-        // DEPLOY_GROUP = 'devops' // 제거
-        // BUNDLE = 'deploy-bundle.zip' // 제거
-        // CONTAINER_PORT = '9090' // 제거
-        // EXECUTION_ROLE_ARN = 'arn:aws:iam::950846564115:role/iam_codedeploy' // 제거
-        // AWS_CREDENTIALS_ID = 'db8c18b0-0e6d-4565-a0cc-2f9bb1405357' // 제거
+        // 기존 AWS 관련 환경 변수들은 주석 처리 또는 제거되었습니다.
+        // 필요하다면 다시 활성화하거나 추가하세요.
     }
 
     stages {
         stage('Checkout') {
             steps {
+                // 'credentialsId: 'none''은 퍼블릭 저장소에 적합합니다.
+                // 만약 프라이빗 저장소라면 적절한 credentialsId를 사용해야 합니다.
                 git url: 'https://github.com/WebGoat/WebGoat.git', credentialsId: 'none'
             }
         }
@@ -34,11 +27,14 @@ pipeline {
                     def workspacePath = pwd()
 
                     echo "Starting Infer static analysis for WebGoat..."
-                    sh "docker run --rm -v ${workspacePath}:/src facebook/infer:latest infer -- mvn -f /src/webgoat-parent/pom.xml clean install"
+                    // WebGoat 프로젝트의 pom.xml이 webgoat-parent/pom.xml에 있을 수 있습니다.
+                    // 실제 프로젝트 구조에 맞게 경로를 확인하고 수정해야 합니다.
+                    sh "docker run --rm -v ${workspacePath}:/src facebook/infer:latest infer -- mvn -f /src/pom.xml clean install"
                     echo "Infer analysis completed. Collecting results..."
-                    
+
+                    // Infer 결과 아티팩트 보관
                     archiveArtifacts artifacts: 'infer-out/**', fingerprint: true, allowEmpty: true
-                    
+
                     echo "--- Infer Analysis Report (report.json) ---"
                     sh "cat infer-out/report.json || echo 'infer-out/report.json not found or empty.'"
                     echo "------------------------------------------"
@@ -46,63 +42,50 @@ pipeline {
             }
         }
 
-        // --- 아래 스테이지들은 주석 처리하거나 삭제합니다 ---
-        // stage('Build Docker Image') {
-        //     steps {
-        //         sh 'docker build -t $ECR_REPO:$IMAGE_TAG .'
-        //     }
-        // }
+        // --- FindSecBugs 분석 스테이지 추가 ---
+        stage('Static Analysis with FindSecBugs') {
+            steps {
+                script {
+                    echo "Starting FindSecBugs analysis for WebGoat..."
+                    // pom.xml에 spotbugs-maven-plugin이 설정되어 있다고 가정합니다.
+                    // 'M3'는 Jenkins Global Tool Configuration에 설정된 Maven 이름입니다.
+                    // 프로젝트의 기본 pom.xml을 사용하여 spotbugs를 실행합니다.
+                    withMaven(maven: 'M3') {
+                        sh 'mvn clean install spotbugs:spotbugs'
+                    }
+                    echo "FindSecBugs analysis completed. Publishing results..."
+                }
+            }
+            post {
+                always {
+                    // Warnings Next Generation Plugin을 사용하여 SpotBugs/FindSecBugs 결과를 게시합니다.
+                    // pom.xml에서 지정한 출력 파일 경로와 일치해야 합니다.
+                    recordIssues enabledForFailure: true, tools: [
+                        spotBugs(pattern: '**/target/spotbugsXml.xml')
+                    ]
+                }
+            }
+        }
+        // --- FindSecBugs 분석 스테이지 추가 끝 ---
 
-        // stage('Login to AWS ECR') {
-        //     steps {
-        //         withCredentials([
-        //             usernamePassword(
-        //                 credentialsId: env.AWS_CREDENTIALS_ID,
-        //                 usernameVariable: 'AWS_ACCESS_KEY_ID',
-        //                 passwordVariable: 'AWS_SECRET_ACCESS_KEY'
-        //             )
-        //         ]) {
-        //             sh '''
-        //                 aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
-        //                 aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
-        //                 aws configure set region $AWS_DEFAULT_REGION
-
-        //                 aws ecr get-login-password --region $AWS_DEFAULT_REGION | \
-        //                 docker login --username AWS --password-stdin $ECR_REPO
-        //             '''
-        //         }
-        //     }
-        // }
-
-        // stage('Push to ECR') {
-        //     steps {
-        //         sh 'docker push $ECR_REPO:$IMAGE_TAG'
-        //     }
-        // }
-
-        // stage('Deploy via CodeDeploy') {
-        //     steps {
-        //         sh '''
-        //             aws deploy create-deployment \
-        //                 --application-name $DEPLOY_APP \
-        //                 --deployment-group-name $DEPLOY_GROUP \
-        //                 --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
-        //                 --s3-location bucket=$S3_BUCKET,bundleType=zip,key=$BUNDLE \
-        //                 --region $AWS_DEFAULT_REGION
-        //         '''
-        //     }
-        // }
+        // 기존에 주석 처리했던 Docker 및 AWS 관련 스테이지는 그대로 주석 처리하거나 필요에 따라 제거합니다.
+        // stage('Build Docker Image') { /* ... */ }
+        // stage('Login to AWS ECR') { /* ... */ }
+        // stage('Push to ECR') { /* ... */ }
+        // stage('Deploy via CodeDeploy') { /* ... */ }
     }
 
     post {
         success {
-            echo "✅ Infer analysis completed successfully!"
+            echo "✅ All static analyses completed successfully!"
         }
         failure {
-            echo "❌ Infer analysis failed. Please check logs."
+            echo "❌ Some static analysis failed. Please check logs."
         }
         always {
-            deleteDir()
+            // 빌드가 끝난 후 워크스페이스를 정리합니다.
+            cleanWs()
+            echo "Cleanup complete."
         }
     }
 }
