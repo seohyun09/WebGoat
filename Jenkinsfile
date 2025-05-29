@@ -46,14 +46,19 @@ pipeline {
         stage('Static Analysis with FindSecBugs') {
             steps {
                 script {
-                    echo "Starting FindSecBugs analysis for WebGoat..."
-                    // pom.xml에 spotbugs-maven-plugin이 설정되어 있다고 가정합니다.
-                    // 'M3'는 Jenkins Global Tool Configuration에 설정된 Maven 이름입니다.
-                    // 프로젝트의 기본 pom.xml을 사용하여 spotbugs를 실행합니다.
-                    withMaven(maven: 'M3') {
-                        sh 'mvn clean install spotbugs:spotbugs'
-                    }
-                    echo "FindSecBugs analysis completed. Publishing results..."
+                   echo "Calling Lambda to trigger FindSecBugs analysis on EC2..."
+
+                    // Lambda 호출
+                    sh """
+                    aws lambda invoke \
+                      --function-name your-lambda-function-name \
+                      --region ap-northeast-2 \
+                      --payload '{}' \
+                      /tmp/findsecbugs-lambda-output.json
+                    """
+
+                    echo "Lambda call completed. Output:"
+                    sh "cat /tmp/findsecbugs-lambda-output.json"
                 }
             }
             post {
