@@ -7,11 +7,6 @@ pipeline {
                      // (혹은 pipeline 내에서 sh 'mvn ...' 명령 시 PATH에 Maven이 잡혀있어야 합니다.)
     }
 
-    environment {
-        // 기존 AWS 관련 환경 변수들은 주석 처리 또는 제거되었습니다.
-        // 필요하다면 다시 활성화하거나 추가하세요.
-    }
-
     stages {
         stage('Checkout') {
             steps {
