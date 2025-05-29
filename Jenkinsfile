@@ -48,25 +48,27 @@ pipeline {
                 script {
                    echo "Calling Lambda to trigger FindSecBugs analysis on EC2..."
 
-                    // Lambda 호출
+                    // Lambda 호출 (브랜치와 프로젝트 정보를 payload에 포함)
                     sh """
                     aws lambda invoke \
-                      --function-name your-lambda-function-name \
+                      --function-name findsecbugs_lambda \
                       --region ap-northeast-2 \
-                      --payload '{}' \
+                      --payload '{ "branch": "develop", "project": "WebGoat" }' \
                       /tmp/findsecbugs-lambda-output.json
                     """
-
+        
                     echo "Lambda call completed. Output:"
                     sh "cat /tmp/findsecbugs-lambda-output.json"
+        
+                    echo "Downloading FindSecBugs analysis result from S3..."
+                    // EC2에서 분석 후 업로드한 XML 결과 가져오기
+                    sh "aws s3 cp s3://your-bucket-name/WebGoat/spotbugsXml.xml target/spotbugsXml.xml"
                 }
             }
             post {
                 always {
-                    // Warnings Next Generation Plugin을 사용하여 SpotBugs/FindSecBugs 결과를 게시합니다.
-                    // pom.xml에서 지정한 출력 파일 경로와 일치해야 합니다.
                     recordIssues enabledForFailure: true, tools: [
-                        spotBugs(pattern: '**/target/spotbugsXml.xml')
+                        spotBugs(pattern: 'target/spotbugsXml.xml')
                     ]
                 }
             }
