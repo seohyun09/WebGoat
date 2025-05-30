@@ -25,7 +25,7 @@ pipeline {
                         sh """
                         aws lambda invoke \
                           --function-name findsecbugs_lambda \
-                          --region ap-northeast-2 \
+                          --region ap-southeast-2 \
                           --payload '{}' \
                           /tmp/findsecbugs-lambda-output.json
                         """
