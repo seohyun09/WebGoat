@@ -18,13 +18,18 @@ pipeline {
                 script {
                     echo "Calling Lambda to trigger FindSecBugs analysis on EC2..."
 
-                    sh """
-                    aws lambda invoke \
-                      --function-name findsecbugs_lambda \
-                      --region ap-northeast-2 \
-                      --payload '{}' \
-                      /tmp/findsecbugs-lambda-output.json
-                    """
+                    withCredentials([[
+                        $class: 'AmazonWebServicesCredentialsBinding',
+                        credentialsId: 'aws-credentials-id'
+                    ]]) {
+                        sh """
+                        aws lambda invoke \
+                          --function-name findsecbugs_lambda \
+                          --region ap-northeast-2 \
+                          --payload '{}' \
+                          /tmp/findsecbugs-lambda-output.json
+                        """
+                    }
 
                     echo "Lambda call completed. Output:"
                     sh "cat /tmp/findsecbugs-lambda-output.json"
