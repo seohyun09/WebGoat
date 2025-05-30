@@ -18,7 +18,7 @@ pipeline {
                 script {
                     echo "Calling Lambda to trigger FindSecBugs analysis on EC2..."
 
-                    withCredentials([[
+                    withCredentials([[ 
                         $class: 'AmazonWebServicesCredentialsBinding',
                         credentialsId: 'aws-credentials-id'
                     ]]) {
@@ -33,13 +33,6 @@ pipeline {
 
                     echo "Lambda call completed. Output:"
                     sh "cat /tmp/findsecbugs-lambda-output.json"
-                }
-            }
-            post {
-                always {
-                    recordIssues enabledForFailure: true, tools: [
-                        spotBugs(pattern: '**/target/spotbugsXml.xml')
-                    ]
                 }
             }
         }
