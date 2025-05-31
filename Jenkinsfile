@@ -9,71 +9,33 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/seohyun09/WebGoat.git', branch: 'develop', credentialsId: 'none'
+                git url: 'https://github.com/seohyun09/WebGoat.git', branch: 'develop'
             }
         }
 
-        stage('Build') {
+        stage('Build & FindSecBugs') {
             steps {
-                script {
-                    echo "Building the project..."
-                    sh "mvn clean package"
-                }
+                // FindSecBugs 플러그인 포함 빌드 및 분석
+                sh 'mvn clean package com.h3xstream.findsecbugs:findsecbugs-maven-plugin:1.12.0:findsecbugs'
             }
         }
 
-        stage('Static Analysis with FindSecBugs and S3 Upload') {
+        stage('Publish FindSecBugs Report') {
             steps {
-                script {
-                    echo "Calling Lambda to trigger FindSecBugs analysis on EC2 and upload results to S3..."
-
-                    // Jenkins에 등록한 시크릿 텍스트 자격증명 ID를 사용
-                    withCredentials([
-                        string(credentialsId: 'AWS_ACCESS_KEY_ID', variable: 'AWS_ACCESS_KEY_ID'),
-                        string(credentialsId: 'AWS_SECRET_ACCESS_KEY', variable: 'AWS_SECRET_ACCESS_KEY')
-                    ]) {
-                        sh """
-                        export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-                        export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-                        aws lambda invoke \\
-                            --function-name findsecbugs_lambda \\
-                            --region ap-southeast-2 \\
-                            --payload '{}' \\
-                            /tmp/findsecbugs-lambda-output.json
-                        """
-                    }
-
-                    echo "Lambda call completed. Checking output for S3 URI..."
-                    def lambdaOutput = sh(returnStdout: true, script: "cat /tmp/findsecbugs-lambda-output.json").trim()
-                    echo "Lambda Response: ${lambdaOutput}"
-
-                    def s3ResultUri = null
-                    try {
-                        def jsonSlurper = new groovy.json.JsonSlurper()
-                        def responseJson = jsonSlurper.parseText(lambdaOutput)
-                        def responseBody = new groovy.json.JsonSlurper().parseText(responseJson.body)
-                        s3ResultUri = responseBody.s3ResultUri
-                    } catch (Exception e) {
-                        echo "Failed to parse Lambda response or find 's3ResultUri': ${e.getMessage()}"
-                    }
-
-                    if (s3ResultUri) {
-                        echo "✅ FindSecBugs results successfully uploaded to S3: ${s3ResultUri}"
-                    } else {
-                        echo "❌ Could not retrieve S3 result URI from Lambda response. Check Lambda function's return format."
-                        error "FindSecBugs S3 upload failed or result URI not found."
-                    }
-                }
+                // Jenkins Warnings Next Generation 플러그인을 사용하는 예시
+                recordIssues tools: [spotBugs(pattern: '**/target/findbugsXml.xml')]
+                // 또는 HTML 리포트라면
+                // publishHTML([reportDir: 'target/site', reportFiles: 'findsecbugs.html', reportName: 'FindSecBugs Report'])
             }
         }
     }
 
     post {
         success {
-            echo "✅ FindSecBugs analysis and S3 upload completed successfully!"
+            echo "✅ FindSecBugs 정적 분석 및 리포트 게시 완료!"
         }
         failure {
-            echo "❌ FindSecBugs analysis or S3 upload failed. 로그를 확인하세요."
+            echo "❌ FindSecBugs 분석 또는 리포트 게시에 실패했습니다. 로그를 확인하세요."
         }
         always {
             cleanWs()
