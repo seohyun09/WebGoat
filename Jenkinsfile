@@ -1,18 +1,11 @@
 pipeline {
     agent any
 
-    tools {
-        jdk 'JDK_17'
-        maven 'M3'
-    }
-
     environment {
-        JAVA_HOME = "/usr/lib/jvm/java-17-amazon-corretto.x86_64"
-        CODEQL_JAVA_HOME = "/usr/lib/jvm/java-17-amazon-corretto.x86_64"
-        CODEQL_EXTRACTOR_JAVA_ROOT = "/usr/local/bin/codeql/java"
-        CODEQL_AUTOBUILD_JAVA_SPRING_DISABLED = "true"
-        CODEQL_EXTRACTOR_JAVA_RUN_MVNW = "false"
-        PYTHONPATH = "/var/lib/jenkins/sarif-tools"
+        AWS_REGION = 'ap-southeast-2'
+        S3_BUCKET = 'codeql-bucket'
+        LAMBDA_NAME = 'codeql_lambda'
+        S3_SOURCE_KEY = 'source.zip' // S3에 업로드할 키 이름
     }
 
     stages {
@@ -22,76 +15,61 @@ pipeline {
             }
         }
 
-        stage('Prepare Maven Classpath') {
+        stage('Zip and Upload Source') {
             steps {
-                dir('WebGoat') {
-                    sh 'mvn dependency:build-classpath -Dmdep.outputFile=classpath.txt'
-                }
+                sh '''
+                    echo "[📦] 소스코드 압축 중..."
+                    zip -r source.zip . -x "*.git*" "*.idea*" "target/*"
+                    echo "[☁️] S3에 업로드 중..."
+                    aws s3 cp source.zip s3://$S3_BUCKET/$S3_SOURCE_KEY --region $AWS_REGION
+                '''
             }
         }
 
-        stage('Create CodeQL Database') {
+        stage('Invoke Lambda') {
             steps {
-                dir('WebGoat') {
-                    script {
-                        def classpath = readFile('classpath.txt').trim()
-                        sh """
-                            /usr/local/bin/codeql database create webgoat-db \\
-                              --language=java \\
-                              --command="\${JAVA_HOME}/bin/javac -source 17 -target 17 -cp '${classpath}' \$(find src/main/java -name '*.java')" \\
-                              --no-autobuild
-                        """
-                    }
-                }
+                sh '''
+                    echo "[🚀] Lambda 함수 호출 중..."
+                    aws lambda invoke \
+                        --function-name $LAMBDA_NAME \
+                        --payload '{"s3_key":"'$S3_SOURCE_KEY'"}' \
+                        --region $AWS_REGION \
+                        --cli-binary-format raw-in-base64-out \
+                        lambda_output.json
+
+                    echo "[📄] Lambda 호출 응답:"
+                    cat lambda_output.json
+                '''
             }
         }
 
-        stage('CodeQL Analyze') {
+        stage('Download Results') {
             steps {
-                dir('WebGoat') {
-                    sh '''
-                        /usr/local/bin/codeql database analyze webgoat-db \
-                          /usr/local/bin/codeql/ql/java/ql/src/codeql-suites/java-code-scanning.qls \
-                          --format=sarifv2.1.0 \
-                          --output=webgoat-codeql-results.sarif
-                    '''
-                }
+                sh '''
+                    echo "[📥] 분석 결과 다운로드 중..."
+                    aws s3 cp s3://$S3_BUCKET/webgoat/webgoat-codeql-results.sarif webgoat-codeql-results.sarif --region $AWS_REGION
+                '''
             }
         }
 
-        stage('Generate & Publish CodeQL Report') {
+        stage('Publish Report') {
             steps {
-                dir('WebGoat') {
-                    sh '''
-                        mkdir -p codeql-html
-                        python3 -m sarif.tools.sarif_to_html webgoat-codeql-results.sarif > codeql-html/index.html
-                    '''
-                    publishHTML(target: [
-                        reportName: 'CodeQL Report',
-                        reportDir: 'codeql-html',
-                        reportFiles: 'index.html',
-                        keepAll: true,
-                        alwaysLinkToLastBuild: true,
-                        allowMissing: false
-                    ])
-                }
+                publishHTML([
+                    reportDir: '.',
+                    reportFiles: 'webgoat-codeql-results.sarif',
+                    reportName: 'CodeQL 분석 리포트',
+                    keepAll: true,
+                    alwaysLinkToLastBuild: true,
+                    allowMissing: false
+                ])
             }
         }
     }
 
     post {
-        success {
-            echo "✅ CodeQL 정적 분석 및 리포트 생성 완료!"
-        }
-        failure {
-            echo "❌ CodeQL 분석 실패. 로그 확인 필요."
-        }
         always {
-            dir('WebGoat') {
-                sh 'rm -rf webgoat-db codeql-html webgoat-codeql-results.sarif'
-            }
             cleanWs()
-            echo "📦 정리 완료"
+            echo "작업 공간 정리 완료"
         }
     }
 }
