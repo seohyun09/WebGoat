@@ -23,7 +23,7 @@ pipeline {
                 sh '''
                     /usr/local/bin/codeql database create webgoat-db \
                       --language=java \
-                      --command="mvn clean compile -DskipTests"
+                      --command="mvn clean compile -DskipTests **--release 17**"
                 '''
             }
         }
