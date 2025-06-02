@@ -6,6 +6,11 @@ pipeline {
         maven 'M3'
     }
 
+    environment {
+        CODEQL_JAVA_HOME = "/usr/lib/jvm/java-17-amazon-corretto.x86_64"
+        CODEQL_EXTRACTOR_JAVA_ROOT = "/usr/local/bin/codeql/java"
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -13,29 +18,34 @@ pipeline {
             }
         }
 
-        stage('Build & FindSecBugs') {
+        stage('CodeQL Create DB') {
             steps {
-                // FindSecBugs 플러그인 포함 빌드 및 분석
-                sh 'mvn clean package com.h3xstream.findsecbugs:findsecbugs-maven-plugin:1.12.0:findsecbugs'
+                sh '''
+                    /usr/local/bin/codeql database create webgoat-db \
+                      --language=java \
+                      --command="mvn clean compile -DskipTests"
+                '''
             }
         }
 
-        stage('Publish FindSecBugs Report') {
+        stage('CodeQL Analyze') {
             steps {
-                // Jenkins Warnings Next Generation 플러그인을 사용하는 예시
-                recordIssues tools: [spotBugs(pattern: '**/target/findbugsXml.xml')]
-                // 또는 HTML 리포트라면
-                // publishHTML([reportDir: 'target/site', reportFiles: 'findsecbugs.html', reportName: 'FindSecBugs Report'])
+                sh '''
+                    /usr/local/bin/codeql database analyze webgoat-db \
+                      codeql-repo/java/ql/src/codeql-suites/java-code-scanning.qls \
+                      --format=sarifv2.1.0 \
+                      --output=webgoat-codeql-results.sarif
+                '''
             }
         }
     }
 
     post {
         success {
-            echo "✅ FindSecBugs 정적 분석 및 리포트 게시 완료!"
+            echo "✅ CodeQL 정적 분석 완료!"
         }
         failure {
-            echo "❌ FindSecBugs 분석 또는 리포트 게시에 실패했습니다. 로그를 확인하세요."
+            echo "❌ CodeQL 분석 실패. 로그를 확인하세요."
         }
         always {
             cleanWs()
