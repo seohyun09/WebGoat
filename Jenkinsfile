@@ -35,18 +35,33 @@ pipeline {
 
         stage('Invoke Lambda') {
             steps {
-                sh '''
+                script {
                     echo "[🚀] Lambda 함수 호출 중..."
-                    aws lambda invoke \
-                        --function-name $LAMBDA_NAME \
-                        --payload '{"s3_key":"'$S3_SOURCE_KEY'"}' \
-                        --region $AWS_REGION \
-                        --cli-binary-format raw-in-base64-out \
-                        lambda_output.json
-
-                    echo "[📄] Lambda 호출 응답:"
-                    cat lambda_output.json
-                '''
+                    def lambdaResult = sh(script: """
+                        aws lambda invoke \\
+                            --function-name ${env.LAMBDA_NAME} \\
+                            --payload '{"s3_key":"${env.S3_SOURCE_KEY}"}' \\
+                            --region ${env.AWS_REGION} \\
+                            --cli-binary-format raw-in-base64-out \\
+                            /dev/stdout | cat
+                    """, returnStdout: true).trim()
+        
+                    echo "[📄] Lambda 호출 응답:\n${lambdaResult}"
+        
+                    def jsonOutput = readJSON text: lambdaResult
+                    def lambdaStatusCode = jsonOutput.statusCode
+                    def ssmCommandStatus = jsonOutput.body ? readJSON(text: jsonOutput.body).Status : null
+        
+                    if (lambdaStatusCode != 200) {
+                        error "Lambda 함수 호출 실패: 상태 코드 ${lambdaStatusCode}"
+                    } else if (ssmCommandStatus == 'Failed' || ssmCommandStatus == 'Cancelled' || ssmCommandStatus == 'TimedOut') {
+                        error "EC2에서 CodeQL 분석 실패 또는 타임아웃됨. SSM Command Status: ${ssmCommandStatus}\nOutput: ${jsonOutput.body}"
+                    } else if (ssmCommandStatus != 'Success') {
+                        // 예상치 못한 상태 (예: InProgress인데 Lambda가 일찍 종료된 경우 등)
+                        error "Lambda 함수 호출이 예상치 못한 상태로 종료됨: ${ssmCommandStatus}\nOutput: ${jsonOutput.body}"
+                    }
+                    echo "Lambda 함수 및 CodeQL 분석 성공!"
+                }
             }
         }
 
