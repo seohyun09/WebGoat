@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION = 'ap-southeast-2'
-        ECR_REPO = '592992781155.dkr.ecr.ap-southeast-2.amazonaws.com/devsecops_ecr'
+        AWS_REGION = 'ap-northeast-2'
+        ECR_REPO = '5592992781155.dkr.ecr.ap-northeast-2.amazonaws.com/devsecops_ecr'
         IMAGE_TAG = 'latest'
     }
 
