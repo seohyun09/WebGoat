@@ -28,11 +28,10 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
-                        sonar-scanner \
+                        ./gradlew sonarqube \
                         -Dsonar.projectKey=your_project_key \
-                        -Dsonar.projectName=your_project_name \
-                        -Dsonar.sources=. \
-                        -Dsonar.java.binaries=target
+                        -Dsonar.host.url=$SONAR_HOST_URL \
+                        -Dsonar.login=$SONAR_AUTH_TOKEN
                     '''
                 }
             }
