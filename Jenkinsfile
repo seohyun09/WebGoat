@@ -1,30 +1,49 @@
 pipeline {
     agent any
 
+    environment {
+        AWS_REGION = 'ap-southeast-2'
+        ECR_REPO = '950846564115.dkr.ecr.ap-southeast-2.amazonaws.com/devops_ecr'
+        IMAGE_TAG = 'latest'
+    }
+
     stages {
-        stage('📦 Checkout') {
+        stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('🔨 Build & Test') {
+        stage('Maven Build') {
             steps {
-                sh './gradlew clean build'
+                sh 'mvn clean package -DskipTests'
             }
         }
-    }
 
-    post {
-        always {
-            cleanWs()
-            echo "🧹 작업 공간 정리 완료"
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t $ECR_REPO:$IMAGE_TAG .'
+            }
         }
-        success {
-            echo "✅ CI 성공!"
+
+        stage('Login to AWS ECR') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'devops_ecr_plugin', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                    sh '''
+                        aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+                        aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+                        aws configure set region $AWS_REGION
+
+                        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin 950846564115.dkr.ecr.ap-southeast-2.amazonaws.com
+                    '''
+                }
+            }
         }
-        failure {
-            echo "❌ CI 실패. 로그를 확인하세요."
+
+        stage('Push to ECR') {
+            steps {
+                sh 'docker push $ECR_REPO:$IMAGE_TAG'
+            }
         }
     }
 }
