@@ -7,10 +7,6 @@ pipeline {
         IMAGE_TAG = 'latest'
     }
 
-    tools {
-        sonarQubeScanner 'SonarQube'
-    }
-
     stages {
         stage('Checkout') {
             steps {
