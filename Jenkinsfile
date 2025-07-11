@@ -6,7 +6,7 @@ pipeline {
         ECR_REPO = '592992781155.dkr.ecr.ap-northeast-2.amazonaws.com/devsecops_ecr'
         IMAGE_TAG = 'latest'
         SONARQUBE_ENV = 'SonarQube' // Jenkins에 등록된 SonarQube 서버 이름
-        SONAR_HOST_URL = 'http://13.125.225.9:9000' // 실제 SonarQube 서버 주소
+        SONAR_HOST_URL = 'http://13.209.6.113:9000' // 실제 SonarQube 서버 주소
         SONAR_AUTH_TOKEN = credentials('sonarqube-token') // Jenkins에 등록된 SonarQube 토큰 ID
     }
 
